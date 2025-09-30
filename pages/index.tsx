@@ -1,115 +1,93 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+import { GetServerSideProps } from 'next';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+import { useState } from 'react';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+type CaseEntry = {
+  respondent: string;
+  description: string;
+  orderType: string;
+  date: string;
+};
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+type Props = {
+  cases: CaseEntry[];
+};
 
-export default function Home() {
+export default function Home({ cases }: Props) {
+  const [showAll, setShowAll] = useState(false);
+
+  const visibleCases = showAll ? cases : cases.slice(0, 10);
+
+  const handleToggleView = () => setShowAll(prev => !prev);
+
+  const handleExportCSV = () => {
+    const header = ['Respondent', 'Description', 'Order Type', 'Date'];
+    const rows = cases.map(c => [c.respondent, c.description, c.orderType, c.date]);
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [header, ...rows].map(e => e.map(v => `"${v}"`).join(',')).join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'epa_cases.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20`}
-    >
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              pages/index.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+    <main>
+      <h1>EPA Civil and Cleanup Enforcement Cases</h1>
+      <div style={{ marginBottom: '1rem' }}>
+        <button onClick={handleToggleView}>
+          {showAll ? 'Show Top 10' : 'Show All'}
+        </button>
+        <button onClick={handleExportCSV} style={{ marginLeft: '1rem' }}>
+          Export to CSV
+        </button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Respondent</th>
+            <th>Description</th>
+            <th>Order Type</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visibleCases.map((entry, idx) => (
+            <tr key={idx}>
+              <td>{entry.respondent}</td>
+              <td>{entry.description}</td>
+              <td>{entry.orderType}</td>
+              <td>{entry.date}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </main>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  const url = 'https://www.epa.gov/enforcement/civil-and-cleanup-enforcement-cases-and-settlements';
+  const { data } = await axios.get(url);
+  const $ = cheerio.load(data);
+
+  const cases: CaseEntry[] = [];
+
+  $('table tbody tr').each((_, el) => {
+    const tds = $(el).find('td');
+    cases.push({
+      respondent: $(tds[0]).text().trim(),
+      description: $(tds[1]).text().trim(),
+      orderType: $(tds[2]).text().trim(),
+      date: $(tds[3]).text().trim(),
+    });
+  });
+
+  return { props: { cases } };
+};
