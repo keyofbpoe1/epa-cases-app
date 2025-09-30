@@ -40,7 +40,17 @@ export default function Home({ cases }: Props) {
   return (
     <main>
       <h1>EPA Civil and Cleanup Enforcement Cases</h1>
-      <div style={{ marginBottom: '1rem' }}>
+      <div style={{ marginBottom: '1rem' }}>      
+        <p style={{ marginBottom: '1rem', fontStyle: 'italic' }}>
+                This data is being pulled from:{' '}
+                <a
+                  href="https://www.epa.gov/enforcement/civil-and-cleanup-enforcement-cases-and-settlements"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  EPA Civil and Cleanup Enforcement Cases and Settlements
+                </a>
+        </p>
         <button onClick={handleToggleView}>
           {showAll ? 'Show Top 10' : 'Show All'}
         </button>
