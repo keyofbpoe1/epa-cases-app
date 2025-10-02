@@ -14,28 +14,61 @@ type Props = {
   cases: CaseEntry[];
 };
 
-export default function Home({ cases }: Props) {
-  const [showAll, setShowAll] = useState(false);
+// export default function Home({ cases }: Props) {
+//   const [showAll, setShowAll] = useState(false);
 
-  const visibleCases = showAll ? cases : cases.slice(0, 10);
+//   const visibleCases = showAll ? cases : cases.slice(0, 10);
 
-  const handleToggleView = () => setShowAll(prev => !prev);
+//   const handleToggleView = () => setShowAll(prev => !prev);
 
-  const handleExportCSV = () => {
-    const header = ['Respondent', 'Description', 'Order Type', 'Date'];
-    const rows = cases.map(c => [c.respondent, c.description, c.orderType, c.date]);
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [header, ...rows].map(e => e.map(v => `"${v}"`).join(',')).join('\n');
+//   const handleExportCSV = () => {
+//     const header = ['Respondent', 'Description', 'Order Type', 'Date'];
+//     const rows = cases.map(c => [c.respondent, c.description, c.orderType, c.date]);
+//     const csvContent =
+//       'data:text/csv;charset=utf-8,' +
+//       [header, ...rows].map(e => e.map(v => `"${v}"`).join(',')).join('\n');
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'epa_cases.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+//     const encodedUri = encodeURI(csvContent);
+//     const link = document.createElement('a');
+//     link.setAttribute('href', encodedUri);
+//     link.setAttribute('download', 'epa_cases.csv');
+//     document.body.appendChild(link);
+//     link.click();
+//     document.body.removeChild(link);
+//   };
+
+  export default function Home({ cases }: Props) {
+    const [showAll, setShowAll] = useState(false);
+  
+    const visibleCases = showAll ? cases : cases.slice(0, 10);
+  
+    const handleToggleView = () => setShowAll(prev => !prev);
+  
+    const handleExportCSV = () => {
+      const header = ['Respondent', 'Description', 'Order Type', 'Date'];
+      const rows = cases.map(c => [c.respondent, c.description, c.orderType, c.date]);
+
+  // Escape CSV values
+  const escapeCSVValue = (value: string) =>
+    `"${String(value).replace(/"/g, '""')}"`;
+
+  // Build CSV string
+  const csvString = [header, ...rows]
+    .map(row => row.map(escapeCSVValue).join(','))
+    .join('\n');
+
+  // Create Blob
+  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+
+  // Create download link
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', 'epa_cases.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 
   return (
     <main>
